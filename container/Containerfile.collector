@@ -1,13 +1,21 @@
-FROM registry.fedoraproject.org/fedora:42
+# FIPS Compliant Vector Collector
+FROM registry.redhat.io/ubi9/ubi:latest
 
-# Install Vector
+# Set FIPS crypto policies
+RUN update-crypto-policies --set FIPS
+
+# Verify FIPS mode is enabled
+RUN test -f /proc/sys/crypto/fips_enabled && cat /proc/sys/crypto/fips_enabled | grep -q 1
+
+# Install Vector (Note: This binary should be from a FIPS-compliant build)
 RUN dnf update -y && \
-    export ARCH=$(uname -m); \
+    export ARCH=$(uname -m) && \
     rpm -i https://yum.vector.dev/stable/vector-0/${ARCH}/vector-0.48.0-1.${ARCH}.rpm && \
     dnf clean all && \
     rm -rf /var/cache/dnf
 
-# Switch to non-root user
+# Create a non-root user for vector
+RUN useradd -ms /bin/bash vector
 USER vector
 
 # Set working directory

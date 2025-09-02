@@ -1,17 +1,20 @@
-FROM localhost/log-collector:latest
+# FIPS Compliant Log Processor
+FROM registry.redhat.io/ubi9/ubi:latest
+
+# Set FIPS crypto policies
+RUN update-crypto-policies --set FIPS
+
+# Verify FIPS mode is enabled
+RUN test -f /proc/sys/crypto/fips_enabled && cat /proc/sys/crypto/fips_enabled | grep -q 1
 
 USER 0
 
-# Install Python and basic tools
-RUN dnf install -y python3 python3-pip python3-boto3 python3-simplejson && \
+# Install Python and FIPS-validated packages
+RUN dnf install -y python3 python3-cryptography python3-boto3 python3-simplejson && \
     dnf clean all
 
 # Create app directory
 WORKDIR /app
-
-# Copy requirements and install dependencies
-COPY requirements.txt .
-RUN pip3 install --no-cache-dir -r requirements.txt
 
 # Copy application code
 COPY log_processor.py .

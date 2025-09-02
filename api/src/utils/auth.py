@@ -17,14 +17,36 @@ _psk_cache = {}
 _cache_ttl = 300  # 5 minutes
 
 
+def validate_fips_mode():
+    """Verify FIPS mode is enabled at runtime"""
+    try:
+        with open('/proc/sys/crypto/fips_enabled', 'r') as f:
+            return f.read().strip() == '1'
+    except:
+        return False
+
 class AuthenticationError(Exception):
     """Raised when authentication fails"""
     pass
 
 
+def get_fips_endpoint(service_name: str, region: str) -> str:
+    """
+    Generate FIPS-compliant endpoint URL for a given AWS service and region
+    
+    Args:
+        service_name: The name of the AWS service (e.g., 'ssm')
+        region: The AWS region
+        
+    Returns:
+        The FIPS-compliant endpoint URL
+    """
+    return f"https://{service_name}-fips.{region}.amazonaws.com"
+
+
 def get_psk_from_ssm(parameter_name: str, region: str) -> str:
     """
-    Retrieve PSK from SSM Parameter Store with caching
+    Retrieve PSK from SSM Parameter Store with caching and FIPS compliance
     
     Args:
         parameter_name: Name of the SSM parameter containing the PSK
@@ -46,7 +68,12 @@ def get_psk_from_ssm(parameter_name: str, region: str) -> str:
             return cached_value
     
     try:
-        ssm_client = boto3.client('ssm', region_name=region)
+        fips_endpoint = get_fips_endpoint('ssm', region)
+        ssm_client = boto3.client(
+            'ssm', 
+            region_name=region,
+            endpoint_url=fips_endpoint
+        )
         response = ssm_client.get_parameter(
             Name=parameter_name,
             WithDecryption=True

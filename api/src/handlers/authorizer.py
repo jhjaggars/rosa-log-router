@@ -8,7 +8,7 @@ import os
 from typing import Dict, Any
 
 # Import our authentication utilities
-from src.utils.auth import authenticate_request, AuthenticationError
+from src.utils.auth import authenticate_request, AuthenticationError, validate_fips_mode
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -62,6 +62,9 @@ def lambda_handler(event: Dict[str, Any], context) -> Dict[str, Any]:
     Returns:
         IAM policy response allowing or denying the request
     """
+    if not validate_fips_mode():
+        logger.error("FIPS mode is not enabled")
+        return generate_policy('fips-error', 'Deny', event.get('methodArn', '*'))
     try:
         print(f"AUTHORIZER: Starting authorization for {event.get('methodArn', 'unknown')}")
         
