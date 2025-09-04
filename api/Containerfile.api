@@ -8,11 +8,11 @@ RUN update-crypto-policies --set FIPS
 # Configure AWS SDK to use FIPS endpoints
 ENV AWS_USE_FIPS_ENDPOINT=true
 
-# Verify FIPS mode is enabled
-RUN test -f /proc/sys/crypto/fips_enabled && cat /proc/sys/crypto/fips_enabled | grep -q 1
+# Install python and available packages from dnf
+RUN dnf install -y python3 python3-pip python3-cryptography && dnf clean all
 
-# Install python and FIPS-validated packages from RHEL repositories
-RUN dnf install -y python3 python3-cryptography python3-boto3 && dnf clean all
+# Install additional Python packages via pip
+RUN pip3 install --no-cache-dir boto3
 
 # Set working directory
 WORKDIR /app

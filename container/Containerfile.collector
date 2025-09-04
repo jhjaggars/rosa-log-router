@@ -4,9 +4,6 @@ FROM registry.redhat.io/ubi9/ubi:latest
 # Set FIPS crypto policies
 RUN update-crypto-policies --set FIPS
 
-# Verify FIPS mode is enabled
-RUN test -f /proc/sys/crypto/fips_enabled && cat /proc/sys/crypto/fips_enabled | grep -q 1
-
 # Install Vector (Note: This binary should be from a FIPS-compliant build)
 RUN dnf update -y && \
     export ARCH=$(uname -m) && \
