@@ -4,6 +4,9 @@ FROM registry.redhat.io/ubi9/ubi:latest
 # Set FIPS crypto policies
 RUN update-crypto-policies --set FIPS
 
+# Configure AWS SDK to use FIPS endpoints
+ENV AWS_USE_FIPS_ENDPOINT=true
+
 # Verify FIPS mode is enabled
 RUN test -f /proc/sys/crypto/fips_enabled && cat /proc/sys/crypto/fips_enabled | grep -q 1
 

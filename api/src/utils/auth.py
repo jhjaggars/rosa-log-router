@@ -30,18 +30,6 @@ class AuthenticationError(Exception):
     pass
 
 
-def get_fips_endpoint(service_name: str, region: str) -> str:
-    """
-    Generate FIPS-compliant endpoint URL for a given AWS service and region
-    
-    Args:
-        service_name: The name of the AWS service (e.g., 'ssm')
-        region: The AWS region
-        
-    Returns:
-        The FIPS-compliant endpoint URL
-    """
-    return f"https://{service_name}-fips.{region}.amazonaws.com"
 
 
 def get_psk_from_ssm(parameter_name: str, region: str) -> str:
@@ -68,11 +56,9 @@ def get_psk_from_ssm(parameter_name: str, region: str) -> str:
             return cached_value
     
     try:
-        fips_endpoint = get_fips_endpoint('ssm', region)
         ssm_client = boto3.client(
             'ssm', 
-            region_name=region,
-            endpoint_url=fips_endpoint
+            region_name=region
         )
         response = ssm_client.get_parameter(
             Name=parameter_name,

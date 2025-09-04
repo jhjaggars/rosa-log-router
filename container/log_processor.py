@@ -127,18 +127,6 @@ def log_vector_line(log_line: str) -> None:
     python_level = parse_vector_log_level(log_line)
     logger.log(python_level, f"  VECTOR: {log_line}")
 
-def get_fips_endpoint(service_name: str, region: str) -> str:
-    """
-    Generate FIPS-compliant endpoint URL for a given AWS service and region
-    
-    Args:
-        service_name: The name of the AWS service (e.g., 'ssm')
-        region: The AWS region
-        
-    Returns:
-        The FIPS-compliant endpoint URL
-    """
-    return f"https://{service_name}-fips.{region}.amazonaws.com"
 
 def lambda_handler(event: Dict[str, Any], context) -> Dict[str, Any]:
     """
@@ -203,7 +191,7 @@ def sqs_polling_mode():
         logger.error("SQS_QUEUE_URL environment variable not set")
         sys.exit(1)
     
-    sqs_client = boto3.client('sqs', region_name=AWS_REGION, endpoint_url=get_fips_endpoint('sqs', AWS_REGION))
+    sqs_client = boto3.client('sqs', region_name=AWS_REGION)
     logger.info(f"Starting SQS polling mode for queue: {SQS_QUEUE_URL}")
     
     while True:
@@ -475,7 +463,7 @@ def get_tenant_delivery_configs(tenant_id: str) -> List[Dict[str, Any]]:
     them to return only the enabled ones internally.
     """
     try:
-        dynamodb = boto3.resource('dynamodb', region_name=AWS_REGION, endpoint_url=get_fips_endpoint('dynamodb', AWS_REGION))
+        dynamodb = boto3.resource('dynamodb', region_name=AWS_REGION)
         table = dynamodb.Table(TENANT_CONFIG_TABLE)
         
         # Query all delivery configurations for this tenant
@@ -588,7 +576,7 @@ def download_and_process_log_file(bucket_name: str, object_key: str) -> tuple[Li
     Returns tuple of (log_events, s3_timestamp_ms)
     """
     try:
-        s3_client = boto3.client('s3', region_name=AWS_REGION, endpoint_url=get_fips_endpoint('s3', AWS_REGION))
+        s3_client = boto3.client('s3', region_name=AWS_REGION)
         response = s3_client.get_object(Bucket=bucket_name, Key=object_key)
         file_content = response['Body'].read()
         
@@ -747,7 +735,7 @@ def deliver_logs_to_cloudwatch(
     Deliver log events to customer's CloudWatch Logs using Vector with native assume_role capability
     """
     try:
-        sts_client = boto3.client('sts', region_name=AWS_REGION, endpoint_url=get_fips_endpoint('sts', AWS_REGION))
+        sts_client = boto3.client('sts', region_name=AWS_REGION)
         
         # Step 1: Assume the central log distribution role
         central_role_response = sts_client.assume_role(
@@ -759,7 +747,7 @@ def deliver_logs_to_cloudwatch(
         central_credentials = central_role_response['Credentials']
         
         # Get the current account ID for ExternalId
-        current_account_id = boto3.client('sts', endpoint_url=get_fips_endpoint('sts', AWS_REGION)).get_caller_identity()['Account']
+        current_account_id = boto3.client('sts').get_caller_identity()['Account']
         
         # Generate unique session ID for Vector
         session_id = str(uuid.uuid4())
@@ -1027,7 +1015,7 @@ def deliver_logs_to_s3(
         - All errors are logged; non-recoverable errors are re-raised for upstream handling.
     """
     try:
-        sts_client = boto3.client('sts', region_name=AWS_REGION, endpoint_url=get_fips_endpoint('sts', AWS_REGION))
+        sts_client = boto3.client('sts', region_name=AWS_REGION)
         
         # Assume the central log distribution role (single-hop)
         central_role_response = sts_client.assume_role(
@@ -1154,7 +1142,7 @@ def scan_mode():
             s3_config['aws_access_key_id'] = 'minioadmin'
             s3_config['aws_secret_access_key'] = 'minioadmin'
     
-    s3_client = boto3.client('s3', **s3_config, endpoint_url=get_fips_endpoint('s3', aws_region))
+    s3_client = boto3.client('s3', **s3_config)
     
     logger.info(f"Scan mode configuration:")
     logger.info(f"  Source bucket: {source_bucket}")
